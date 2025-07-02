@@ -1,0 +1,21 @@
+Este é um sistema web para universidade que permite cadastro e edição de alunos, inserção e consulta de notas e faltas, consulta de histórico, cancelamento de matrícula e consulta da grade de horários.
+
+## Como Rodar o Projeto
+1. Crie um banco de dados chamado universidade e execute o arquivo database.sql no MySQL para criar a estrutura inicial.
+
+2. Crie um arquivo .env na raiz do projeto baseado no example.env e configure as variáveis de ambiente (dados de conexão com o banco, etc).
+
+3. Instale as dependências:
+
+cd backend
+npm install
+
+cd ../frontend
+npm install
+
+cd ..
+npm install concurrently --save-dev
+
+4. Na raiz do projeto, rode o comando para iniciar backend e frontend simultaneamente: npm start
+
+Obs.: Para acessar com usuário de professor, basta utiliza algum dos emails que estão no banco de dados com a senha "123456" e para o acesso de aluno, basta cadastrar um novo aluno

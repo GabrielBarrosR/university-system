@@ -1,0 +1,7 @@
+const express = require('express');
+const router = express.Router();
+const cursoController = require('../controllers/cursoController');
+
+router.get('/professor', cursoController.listarCursosPorEmail);
+
+module.exports = router;
