@@ -11,9 +11,13 @@ export function CadastrarAluno() {
   const [periodos, setPeriodos] = useState([]);
 
   useEffect(() => {
+    
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.email) return;
+
     async function fetchCursos() {
       try {
-        const res = await fetch('http://localhost:3001/api/cursos');
+        const res = await fetch(`http://localhost:3001/api/cursos/professor?email=${encodeURIComponent(user.email)}`);
         const data = await res.json();
         setCursos(data);
       } catch (err) {
@@ -570,8 +574,138 @@ export function InserirFaltas() {
   );
 }
 
-export function AlterarCadastro(){
-  return <p>Aqui você altera o cadastro de um aluno.</p>
+export function AlterarCadastro() {
+  const [matricula, setMatricula] = useState('');
+  const [aluno, setAluno] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [nome, setNome] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [logradouro, setLogradouro] = useState('');
+  const [numero, setNumero] = useState('');
+
+  const buscarAluno = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`http://localhost:3001/api/alunos/${matricula}`);
+      if (!res.ok) {
+        alert('Aluno não encontrado.');
+        setAluno(null);
+        setIsLoading(false);
+        return;
+      }
+      const data = await res.json();
+      setAluno(data);
+      setNome(data.nome);
+      setCpf(data.cpf);
+      setLogradouro(data.logradouro);
+      setNumero(data.numero);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao buscar aluno.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!aluno) return;
+
+    try {
+      const res = await fetch(`http://localhost:3001/api/alunos/${matricula}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome,
+          cpf,
+          logradouro,
+          numero
+        }),
+      });
+
+      if (res.ok) {
+        alert('Cadastro atualizado com sucesso!');
+      } else {
+        const error = await res.json();
+        alert(`Erro: ${error.message}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro na conexão com o servidor.');
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={formStyles.container}>
+      <h2 style={formStyles.title}>Alterar Cadastro</h2>
+
+      <input
+        type="text"
+        placeholder="Matrícula"
+        value={matricula}
+        onChange={e => setMatricula(e.target.value)}
+        style={formStyles.input}
+        required
+      />
+      <button
+        type="button"
+        onClick={buscarAluno}
+        style={{ ...formStyles.button, backgroundColor: '#28a745' }}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Buscando...' : 'Buscar Aluno'}
+      </button>
+
+      <input
+        type="text"
+        placeholder="Nome"
+        value={nome}
+        onChange={e => setNome(e.target.value)}
+        style={{ ...formStyles.input, marginTop: '20px'}}
+        disabled={!aluno}
+        required
+      />
+
+      <input
+        type="text"
+        placeholder="CPF"
+        value={cpf}
+        onChange={e => setCpf(e.target.value)}
+        style={formStyles.input}
+        disabled={!aluno}
+        required
+      />
+
+      <input
+        type="text"
+        placeholder="Logradouro"
+        value={logradouro}
+        onChange={e => setLogradouro(e.target.value)}
+        style={formStyles.input}
+        disabled={!aluno}
+        required
+      />
+
+      <input
+        type="number"
+        placeholder="Número"
+        value={numero}
+        onChange={e => setNumero(e.target.value)}
+        style={formStyles.input}
+        disabled={!aluno}
+        required
+      />
+
+      <button
+        type="submit"
+        style={formStyles.button}
+        disabled={!aluno}
+      >
+        Salvar Alterações
+      </button>
+    </form>
+  );
 }
 
 const formStyles = {
