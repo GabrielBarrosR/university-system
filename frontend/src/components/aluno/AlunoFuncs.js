@@ -1,43 +1,69 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 
 export function ConsultarNotas() {
-  const notas = [
-    { disciplina: 'Matemática', nota: 8.5, situacao: 'Aprovado' },
-    { disciplina: 'História', nota: 7.0, situacao: 'Aprovado' },
-    { disciplina: 'Física', nota: 5.5, situacao: 'Reprovado' },
-    { disciplina: 'Química', nota: 9.2, situacao: 'Aprovado' },
-    { disciplina: 'Biologia', nota: 6.0, situacao: 'Aprovado' },
-  ];
+  const [notas, setNotas] = useState([]);
+
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    if (!user || !user.email) return;
+
+    fetch(`http://localhost:3001/api/alunos/${user.email}/notas`)
+      .then(response => response.json())
+      .then(data => setNotas(data))
+      .catch(error => console.error('Erro ao buscar notas:', error));
+  }, []);
+
+  const agrupado = {};
+  notas.forEach(nota => {
+    if (!agrupado[nota.disciplina]) {
+      agrupado[nota.disciplina] = { soma: 0, qtd: 0 };
+    }
+    agrupado[nota.disciplina].soma += Number(nota.nota);
+    agrupado[nota.disciplina].qtd += 1;
+  });
+
+  const mediasCalculadas = Object.entries(agrupado).map(([disciplina, { soma, qtd }]) => ({
+    disciplina,
+    media: soma / qtd,
+    qtd
+  }));
 
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Consultar Notas</h2>
-
-      <table style={styles.table}>
-        <thead>
-          <tr style={styles.headerRow}>
-            <th style={styles.headerCell}>Disciplina</th>
-            <th style={styles.headerCell}>Nota</th>
-            <th style={styles.headerCell}>Situação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {notas.map((nota, index) => (
-            <tr key={index} style={styles.row}>
-              <td style={styles.cell}>{nota.disciplina}</td>
-              <td style={styles.cell}>{nota.nota}</td>
-              <td style={styles.cell}>
-                <span style={nota.situacao === 'Aprovado' ? styles.aprovado : styles.reprovado}>
-                  {nota.situacao}
-                </span>
-              </td>
+      {notas.length !== 0 ? (
+        <table style={styles.table}>
+          <thead>
+            <tr style={styles.headerRow}>
+              <th style={styles.headerCell}>Disciplina</th>
+              <th style={styles.headerCell}>Nota</th>
+              <th style={styles.headerCell}>Notas Lançadas</th>
+              <th style={styles.headerCell}>Situação</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {mediasCalculadas.map((item, index) => (
+              <tr key={index} style={styles.row}>
+                <td style={styles.cell}>{item.disciplina}</td>
+                <td style={styles.cell}>{item.media.toFixed(2)}</td>
+                <td style={styles.cell}>{item.qtd + "/4"}</td>
+                <td style={styles.cell}>
+                  <span
+                    style={item.media >= 6 ? styles.aprovado : styles.reprovado}>
+                    {item.media >= 6 ? "Aprovado" : "Reprovado"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>Nenhuma nota encontrada.</p>
+      )}
     </div>
   );
 }
+
 
 export function ConsultarFaltas() {
   return <p>Aqui você consulta suas faltas.</p>;

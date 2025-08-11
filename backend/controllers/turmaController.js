@@ -71,4 +71,3 @@ exports.listarTurmasPorCursoEPeriodo = async (req, res) => {
   }
 };
 
-
