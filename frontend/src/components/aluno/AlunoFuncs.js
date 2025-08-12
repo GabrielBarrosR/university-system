@@ -1,16 +1,28 @@
 import { useState, useEffect } from 'react';
 
+
 export function ConsultarNotas() {
   const [notas, setNotas] = useState([]);
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || !user.email) return;
+    async function buscarNotas() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.email) return;
 
-    fetch(`http://localhost:3001/api/alunos/${user.email}/notas`)
-      .then(response => response.json())
-      .then(data => setNotas(data))
-      .catch(error => console.error('Erro ao buscar notas:', error));
+        const res = await fetch(`http://localhost:3001/api/alunos/${user.email}/notas`);
+        if (!res.ok) {
+          console.error('Erro na resposta da API:', res.statusText);
+          return;
+        }
+        const data = await res.json();
+        setNotas(data);
+      } catch (error) {
+        console.error('Erro ao buscar notas:', error);
+      }
+    }
+
+    buscarNotas();
   }, []);
 
   const agrupado = {};
@@ -48,8 +60,7 @@ export function ConsultarNotas() {
                 <td style={styles.cell}>{item.media.toFixed(2)}</td>
                 <td style={styles.cell}>{item.qtd + "/4"}</td>
                 <td style={styles.cell}>
-                  <span
-                    style={item.media >= 6 ? styles.aprovado : styles.reprovado}>
+                  <span style={item.media >= 6 ? styles.aprovado : styles.reprovado}>
                     {item.media >= 6 ? "Aprovado" : "Reprovado"}
                   </span>
                 </td>
@@ -64,10 +75,88 @@ export function ConsultarNotas() {
   );
 }
 
-
 export function ConsultarFaltas() {
-  return <p>Aqui você consulta suas faltas.</p>;
+  const [faltas, setFaltas] = useState([]);
+
+  useEffect(() => {
+    async function buscarFaltas() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.email) return;
+
+        const res = await fetch(`http://localhost:3001/api/faltas/${user.email}`);
+        if (!res.ok) {
+          console.error('Erro na resposta da API:', res.statusText);
+          return;
+        }
+        const data = await res.json();
+        setFaltas(data);
+      } catch (error) {
+        console.error('Erro ao buscar faltas:', error);
+      }
+    }
+
+    buscarFaltas();
+  }, []);
+
+  const agrupado = {};
+
+  faltas.forEach(({ disciplina, tipo, falta }) => {
+    if (!agrupado[disciplina]) {
+      agrupado[disciplina] = {
+        totalFaltas: 0,
+        justificadas: 0,
+        naoJustificadas: 0,
+      };
+    }
+
+    agrupado[disciplina].totalFaltas += Number(falta);
+
+    const tipoNormalizado = (tipo || '').toLowerCase().trim();
+
+    if (tipoNormalizado === 'justificada') {
+      agrupado[disciplina].justificadas += Number(falta);
+    } else if (tipoNormalizado === 'não justificada' || tipoNormalizado === 'nao justificada') {
+      agrupado[disciplina].naoJustificadas += Number(falta);
+    }
+  });
+
+  const faltasAgrupadas = Object.entries(agrupado).map(([disciplina, valores]) => ({
+    disciplina,
+    ...valores,
+  }));
+
+  return (
+    <div style={styles.container}>
+      <h2 style={styles.title}>Consultar Faltas</h2>
+      {faltas.length !== 0 ? (
+        <table style={styles.table}>
+          <thead>
+            <tr style={styles.headerRow}>
+              <th style={styles.headerCell}>Disciplina</th>
+              <th style={styles.headerCell}>Faltas</th>
+              <th style={styles.headerCell}>Justificadas</th>
+              <th style={styles.headerCell}>Não Justificadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {faltasAgrupadas.map((item, index) => (
+              <tr key={index} style={styles.row}>
+                <td style={styles.cell}>{item.disciplina}</td>
+                <td style={styles.cell}>{item.totalFaltas}</td>
+                <td style={styles.cell}>{item.justificadas}</td>
+                <td style={styles.cell}>{item.naoJustificadas}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>Nenhuma falta encontrada.</p>
+      )}
+    </div>
+  );
 }
+
 
 export function CancelarMatricula() {
   return <p>Aqui você pode cancelar sua matrícula.</p>;
