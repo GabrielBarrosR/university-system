@@ -71,3 +71,47 @@ exports.listarTurmasPorCursoEPeriodo = async (req, res) => {
   }
 };
 
+  exports.lsitarHorárioseDiasporTurma = async (req, res) => {
+    const { email } = req.params;
+
+    if (!email) {
+      return res.status(400).json({ message: 'ID da turma é obrigatório.' });
+    }
+
+    try {
+      const conn = await pool.getConnection();
+
+      const [idusuario] = await conn.query(
+        'SELECT id FROM usuarios WHERE email = ? AND tipo = "aluno"',
+        [email]
+      );
+
+      if (idusuario.length === 0) {
+        conn.release();
+        return res.status(404).json({ message: 'Aluno não encontrado.' });
+      }
+
+      const [cursoperiodo] = await conn.query(
+        'SELECT id_curso, id_periodo FROM alunos WHERE id_usuario = ?',
+        [idusuario[0].id]
+      );
+
+      if (cursoperiodo.length === 0) {
+        conn.release();
+        return res.status(404).json({ message: 'Curso ou período não encontrado.' });
+      }
+
+      const [diasehorarios] = await conn.query(
+        'SELECT nome, diaSemana, horario FROM turmas WHERE id_curso = ? AND id_periodo = ?',
+        [cursoperiodo[0].id_curso, cursoperiodo[0].id_periodo]
+      )
+
+      conn.release();
+      return res.json(diasehorarios)
+
+    } catch(error) {
+      console.error('Erro ao listar horários e dias por turma:', error);
+      return res.status(500).json({ message: 'Erro interno no servidor.' });
+    }
+  }
+
