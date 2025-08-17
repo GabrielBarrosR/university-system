@@ -113,3 +113,38 @@ exports.atualizarAluno = async (req, res) => {
     return res.status(500).json({ message: 'Erro interno no servidor' });
   }
 };
+
+exports.cancelarMatricula = async (req, res) => {
+  const { email, userType} = req.body ;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email do aluno é obrigatório.' });
+  }
+  
+    try{
+    const conn = await pool.getConnection();
+    
+    const response = await conn.query('update alunos a join usuarios u on u.id = a.id_usuario set a.ativo = 0 where u.email = ? and u.tipo = ?', [email, userType]);
+    res.status(200).json({ message: 'Matrícula cancelada com sucesso' });
+    } catch (err) {
+      res.status(500).json({error: 'Erro ao cancelar matrícula do aluno'})
+    }
+  }
+
+exports.consultarMatricula = async (req, res) => {
+  const {email} = req.params;
+
+  if (!email) {
+    return res.status(400).json({ message: 'Email do aluno é obrigatório.' });
+  }
+
+  try {
+    const conn = await pool.getConnection();
+    const [matricula] = await conn.query('SELECT a.matricula FROM alunos a JOIN usuarios u ON u.id = a.id_usuario WHERE u.email = ?', [email])
+    
+    res.status(200).json(matricula[0])
+
+  }catch(error){
+    res.status(500).json({error: 'Erro ao consultar matrícula do aluno'})
+  }
+}

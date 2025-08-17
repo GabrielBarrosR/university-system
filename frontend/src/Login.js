@@ -20,11 +20,16 @@ function Login({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, userType }),
       });
+      
+      const data = await response.json();
+
+      if (data.ativo === 0){
+        setErrorMessage('Usuário inativo. Contate o administrador.');
+        return;
+      }
 
       if (response.ok) {
-        const data = await response.json();
-
-        localStorage.setItem('user', JSON.stringify({
+          localStorage.setItem('user', JSON.stringify({
           email,
           tipo: data.tipo,
         }));

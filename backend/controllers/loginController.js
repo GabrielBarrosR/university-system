@@ -5,10 +5,21 @@ exports.login = async (req, res) => {
   const { email, password, userType } = req.body;
 
   try {
-    const [rows] = await pool.query(
+
+    let rows;
+
+    if (userType === 'aluno') {
+     [rows] = await pool.query(
+      'SELECT u.*, a.ativo FROM usuarios u join alunos as a on u.id = a.id_usuario WHERE email = ? AND tipo = ?',
+      [email, userType]
+    )
+  }
+  else {
+     [rows] = await pool.query(
       'SELECT * FROM usuarios WHERE email = ? AND tipo = ?',
       [email, userType]
     );
+  }
 
     if (rows.length === 0) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
@@ -22,7 +33,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Credenciais inválidas' });
     }
 
-    return res.status(200).json({ tipo: user.tipo });
+    return res.status(200).json({ tipo: user.tipo, ativo: user.ativo });
   } catch (err) {
     console.error('Erro no login:', err);
     return res.status(500).json({ message: 'Erro no servidor' });

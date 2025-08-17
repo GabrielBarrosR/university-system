@@ -157,10 +157,165 @@ export function ConsultarFaltas() {
   );
 }
 
-
 export function CancelarMatricula() {
-  return <p>Aqui você pode cancelar sua matrícula.</p>;
+  const [aluno, setAluno] = useState(null);
+  const [showPopup, setShowPopup] = useState(false); 
+
+  useEffect(() => {
+    async function consultarDados() {
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user || !user.email) return;
+
+        const matriculaRes = await fetch(
+          `http://localhost:3001/api/alunos/matricula/${user.email}`
+        );
+        if (!matriculaRes.ok) {
+          console.error("Erro ao consultar matrícula:", matriculaRes.statusText);
+          return;
+        }
+        const { matricula } = await matriculaRes.json();
+
+        const alunoRes = await fetch(`http://localhost:3001/api/alunos/${matricula}`);
+        if (!alunoRes.ok) {
+          console.error("Erro ao consultar dados do aluno:", alunoRes.statusText);
+          return;
+        }
+
+        const alunoData = await alunoRes.json();
+        setAluno(alunoData);
+      } catch (error) {
+        console.error("Erro ao consultar dados do aluno:", error);
+      }
+    }
+    consultarDados();
+  }, []);
+
+  async function handleCancel() {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user || !user.email) return;
+
+      const res = await fetch(`http://localhost:3001/api/alunos/cancelar-matricula`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, userType: user.tipo }),
+      });
+
+      if (!res.ok) {
+        console.error("Erro na resposta da API:", res.statusText);
+        return;
+      }
+
+      const data = await res.json();
+      alert(data.message || "Matrícula cancelada com sucesso");
+      localStorage.removeItem("user");
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  if (!aluno) return <p>Carregando dados...</p>;
+
+  return (
+    <div style={styles.container}>
+      <h2 style={styles.title}>Dados da Matrícula</h2>
+      <table style={styles.table}>
+        <tbody>
+          <tr style={styles.row}>
+            <td style={{ ...styles.cell, fontWeight: "bold", fontSize: "20px" }}>Matrícula</td>
+            <td style={styles.cell}>{aluno.matricula}</td>
+          </tr>
+          <tr style={styles.row}>
+            <td style={{ ...styles.cell, fontWeight: "bold", fontSize: "20px" }}>Nome</td>
+            <td style={styles.cell}>{aluno.nome}</td>
+          </tr>
+          <tr style={styles.row}>
+            <td style={{ ...styles.cell, fontWeight: "bold", fontSize: "20px" }}>CPF</td>
+            <td style={styles.cell}>{aluno.cpf}</td>
+          </tr>
+          <tr style={styles.row}>
+            <td style={{ ...styles.cell, fontWeight: "bold", fontSize: "20px" }}>Logradouro</td>
+            <td style={styles.cell}>{aluno.logradouro}</td>
+          </tr>
+          <tr style={styles.row}>
+            <td style={{ ...styles.cell, fontWeight: "bold", fontSize: "20px" }}>Número</td>
+            <td style={styles.cell}>{aluno.numero}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <button
+        style={styles.cancelbutton}
+        onClick={() => setShowPopup(true)} 
+      >
+        Desejo Cancelar a Matrícula
+      </button>
+
+      {showPopup && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              padding: "30px",
+              borderRadius: "10px",
+              textAlign: "center",
+              minWidth: "300px",
+            }}
+          >
+            <h2>Confirmação</h2>
+            <p>Você perderá acesso ao portal do aluno. Deseja confirmar?</p>
+            <div style={{ marginTop: "20px", display: "flex", justifyContent: "space-around" }}>
+              <button
+                onClick={() => setShowPopup(false)}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#ccc",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  handleCancel();
+                  setShowPopup(false);
+                }}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: "#ff4c4c",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
+
 
 export function ConsultarGrade() {
   const [grade, setGrade] = useState([]);
@@ -348,4 +503,17 @@ const styles = {
     color: 'red',
     fontWeight: 'bold',
   },
+    cancelbutton: {
+    marginTop: '20px',
+    backgroundColor: '#ff4c4c',
+    color: 'white',
+    padding: '10px 20px',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    transition: 'background-color 0.3s',
+    marginLeft: '10px',
+  }
 };

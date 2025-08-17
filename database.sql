@@ -27,6 +27,7 @@ CREATE TABLE alunos (
   id_periodo INT,
   id_curso INT,
   id_usuario INT,
+  ativo boolean DEFAULT true,
   CONSTRAINT fk_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios(id),
   CONSTRAINT fk_curso FOREIGN KEY (id_curso) REFERENCES cursos(id),
   CONSTRAINT fk_periodo_aluno FOREIGN KEY (id_periodo) REFERENCES periodos(id)
