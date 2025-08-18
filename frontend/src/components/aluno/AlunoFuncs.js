@@ -454,7 +454,144 @@ export function VisualizarContratos() {
 }
 
 export function ConsultarHistorico() {
-  return <p>Aqui você consulta seu histórico escolar.</p>;
+  const [notas, setNotas] = useState([]);
+  const [faltas, setFaltas] = useState([]);
+  const [grade, setGrade] = useState([]);
+  const [aluno, setAluno] = useState(null); 
+
+  useEffect(() => {
+    async function buscarDados() {
+      try {
+        const user = JSON.parse(localStorage.getItem("user"));
+        if (!user || !user.email) return;
+
+        const resMatricula = await fetch(
+          `http://localhost:3001/api/alunos/matricula/${user.email}`
+        );
+        const matriculaData = resMatricula.ok ? await resMatricula.json() : null;
+        const matricula = matriculaData?.matricula;
+        if (!matricula) return;
+
+        const resAluno = await fetch(
+          `http://localhost:3001/api/alunos/${matricula}`
+        );
+        const alunoData = resAluno.ok ? await resAluno.json() : null;
+        setAluno(alunoData);
+
+        const resNotas = await fetch(
+          `http://localhost:3001/api/avaliacoes/${user.email}/notas`
+        );
+        const notasData = resNotas.ok ? await resNotas.json() : [];
+
+        const resFaltas = await fetch(
+          `http://localhost:3001/api/faltas/${user.email}`
+        );
+        const faltasData = resFaltas.ok ? await resFaltas.json() : [];
+
+        const resGrade = await fetch(
+          `http://localhost:3001/api/turmas/horarios/${user.email}`
+        );
+        const gradeData = resGrade.ok ? await resGrade.json() : [];
+
+        setNotas(notasData);
+        setFaltas(faltasData);
+        setGrade(gradeData);
+      } catch (error) {
+        console.error("Erro ao buscar histórico:", error);
+      }
+    }
+
+    buscarDados();
+  }, []);
+
+  const medias = {};
+  notas.forEach((nota) => {
+    if (!medias[nota.disciplina]) {
+      medias[nota.disciplina] = { soma: 0, qtd: 0 };
+    }
+    medias[nota.disciplina].soma += Number(nota.nota);
+    medias[nota.disciplina].qtd += 1;
+  });
+
+  const faltasAgrupadas = {};
+  faltas.forEach(({ disciplina, falta }) => {
+    if (!faltasAgrupadas[disciplina]) {
+      faltasAgrupadas[disciplina] = 0;
+    }
+    faltasAgrupadas[disciplina] += Number(falta);
+  });
+
+  const historico = grade.map((disc) => {
+    const mediaFinal =
+      medias[disc.nome]?.soma / (medias[disc.nome]?.qtd || 1) || 0;
+    const totalFaltas = faltasAgrupadas[disc.nome] || 0;
+
+    let situacao = "Aprovado";
+    if (mediaFinal < 6) situacao = "Reprovado por nota";
+    if (totalFaltas > 20) situacao = "Reprovado por falta";
+
+    return {
+      disciplina: disc.nome,
+      periodo: disc.periodo || aluno?.id_periodo || "Não informado",
+      mediaFinal,
+      faltas: totalFaltas,
+      situacao,
+    };
+  });
+
+  const porPeriodo = {};
+  historico.forEach((item) => {
+    if (!porPeriodo[item.periodo]) porPeriodo[item.periodo] = [];
+    porPeriodo[item.periodo].push(item);
+  });
+
+  const periodosOrdenados = Object.keys(porPeriodo).sort();
+
+  return (
+    <div style={styles.container}>
+      <h2 style={styles.title}>Histórico Escolar</h2>
+
+      {historico.length === 0 && <p>Nenhum histórico encontrado.</p>}
+
+      {periodosOrdenados.map((periodo) => (
+        <div key={periodo} style={{ marginBottom: "30px" }}>
+          <h3 style={{ textAlign: "center", color: "#555" }}>
+            Período: {periodo}
+          </h3>
+          <table style={styles.table}>
+            <thead>
+              <tr style={styles.headerRow}>
+                <th style={styles.headerCell}>Disciplina</th>
+                <th style={styles.headerCell}>Nota Final</th>
+                <th style={styles.headerCell}>Faltas</th>
+                <th style={styles.headerCell}>Situação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {porPeriodo[periodo].map((item, index) => (
+                <tr key={index} style={styles.row}>
+                  <td style={styles.cell}>{item.disciplina}</td>
+                  <td style={styles.cell}>{item.mediaFinal.toFixed(2)}</td>
+                  <td style={styles.cell}>{item.faltas}</td>
+                  <td style={styles.cell}>
+                    <span
+                      style={
+                        item.situacao.startsWith("Aprovado")
+                          ? styles.aprovado
+                          : styles.reprovado
+                      }
+                    >
+                      {item.situacao}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 const styles = {
